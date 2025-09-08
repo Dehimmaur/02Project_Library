@@ -1,21 +1,16 @@
 package telran.library.models;
 
-
 import java.util.*;
-
 
 import telran.library.entities.Book;
 import telran.library.entities.Reader;
 import telran.library.entities.enums.BooksReturnCodes;
 import static telran.library.entities.enums.BooksReturnCodes.*;
 
-
 public class LibraryMaps extends AbstractLibrary {
-
 
     Map<Long, Book> books = new HashMap<>();
     Map<Integer, Reader> readers = new HashMap<>();
-
 
     @Override
     public BooksReturnCodes addBookItem(Book book) {
@@ -26,11 +21,8 @@ public class LibraryMaps extends AbstractLibrary {
         BooksReturnCodes res = books
                 .putIfAbsent(book.getIsbn(), book) ==
                 null ? OK : BOOK_ITEM_EXISTS;
-
-
         return res;
     }
-
 
     @Override
     public BooksReturnCodes addReader(Reader reader) {
