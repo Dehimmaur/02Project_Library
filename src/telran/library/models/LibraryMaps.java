@@ -1,8 +1,10 @@
 package telran.library.models;
 
+import java.time.LocalDate;
 import java.util.*;
 
 import telran.library.entities.Book;
+import telran.library.entities.PickRecord;
 import telran.library.entities.Reader;
 import telran.library.entities.enums.BooksReturnCodes;
 import static telran.library.entities.enums.BooksReturnCodes.*;
@@ -11,6 +13,11 @@ public class LibraryMaps extends AbstractLibrary {
 
     Map<Long, Book> books = new HashMap<>();
     Map<Integer, Reader> readers = new HashMap<>();
+
+    // Sprint2
+    private Map<Integer, List<PickRecord>> readersRecords = new HashMap<>();
+    private Map<Long, List<PickRecord>> booksRecords = new HashMap<>();
+    private Map<LocalDate, List<PickRecord>> records = new HashMap<>();
 
     @Override
     public BooksReturnCodes addBookItem(Book book) {
@@ -57,5 +64,63 @@ public class LibraryMaps extends AbstractLibrary {
             return null;
         }
         return book;
+    }
+
+    @Override
+    public BooksReturnCodes pickBook(long isbn, int readerId, LocalDate pickDate) {
+        Book book = books.get(isbn);
+        if (book == null) {
+            return BooksReturnCodes.NO_BOOK_ITEM;
+        }
+        Reader reader = readers.get(readerId);
+        if (reader == null) {
+            return BooksReturnCodes.NO_READER_EXISTS;
+        }
+        if (book.getAmount() - book.getAmountInUse() <= 0) {
+            return BooksReturnCodes.NO_BOOK_ITEM_EXIST;
+        }
+
+        book.setAmountInUse(book.getAmountInUse() + 1);
+        PickRecord record = new PickRecord(isbn, readerId, pickDate);
+
+        readersRecords.computeIfAbsent(readerId, k -> new ArrayList<>()).add(record);
+        booksRecords.computeIfAbsent(isbn, k -> new ArrayList<>()).add(record);
+        records.computeIfAbsent(pickDate, k -> new ArrayList<>()).add(record);
+
+        return BooksReturnCodes.OK;
+    }
+
+    @Override
+    public List<Book> getBooksPickedByReader(int readerId) {
+        return readersRecords.getOrDefault(readerId, List.of())
+                .stream()
+                .map(r -> books.get(r.getIsbn()))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    @Override
+    public List<Reader> getReadersPickedBook(long isbn) {
+        return booksRecords.getOrDefault(isbn, List.of())
+                .stream()
+                .map(r -> readers.get(r.getReaderId()))
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    @Override
+    public List<Book> getBooksAuthor(String authorName) {
+        return books.values().stream()
+                .filter(b -> b.getAuthor().equalsIgnoreCase(authorName))
+                .toList();
+    }
+
+    @Override
+    public List<PickRecord> getPickedRecordsAtDates(LocalDate from, LocalDate to) {
+        return records.entrySet().stream()
+                .filter(e -> !e.getKey().isBefore(from) && !e.getKey().isAfter(to))
+                .flatMap(e -> e.getValue().stream())
+                .toList();
     }
 }
